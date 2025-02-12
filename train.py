@@ -1,12 +1,11 @@
 from gym_duckietown.simulator import Simulator
 import gymnasium as gym
 from gymnasium import wrappers
-import yaml
-import gym_duckietown.simulator
-from collections import deque
 import numpy as np
 import torch
 import config
+from logs.logger import Logger
+from agent import Agent
 
 def create_env(max_steps):
     env = Simulator(
@@ -23,10 +22,47 @@ def create_env(max_steps):
     return env
 
 if __name__ == "__main__":
+    if torch.cuda.is_available():
+        cuda=True
+    else:
+        cuda=False
+    print(f"Is unsing cuda: %s" %cuda)
+    
     env=create_env(config.MAX_STEPS)
     env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
-    state_dim = env.reset()[0].shape
+
+    obs = env.reset()[0]
+    c=obs.shape[0]
     action_dim = env.action_space.shape[0]
-    
-    episodes=config.EPISODES
-    max_steps=config.MAX_STEPS
+
+    duckie=Agent(action_dim, c , 4, config.REPLAY_BUFFER_SIZE, config.BATCH_SIZE, config.ACTOR_LR, config.CRITIC_LR, config.GAMMA, config.TAU)
+
+    done=False
+    RewardEpisode=0
+    logger=Logger()
+    for step in range(config.MAX_STEPS):
+        if done and step>0:
+            duckie.train()
+            done=False
+            obs=env.reset()[0]
+            #print(f"Reward episode: {RewardEpisode}")
+            RewardEpisode=0
+
+        
+        if (step<config.RANDOM_STEPS):
+            action=env.action_space.sample()
+        else:
+            action=duckie.select_action(obs)
+
+        new_obs, reward, done, truncated, info = env.step(action)
+        env.render()
+        
+        duckie.storeStep(obs, new_obs, action, reward, done)
+
+        dist_center=info["Simulator"]["lane_position"]["dist"]
+        logger.add(step, reward, dist_center)
+
+        obs=new_obs
+        RewardEpisode+=-reward
+
+        
