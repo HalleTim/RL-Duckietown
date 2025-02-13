@@ -98,6 +98,6 @@ class Agent():
         self.update()
 
 
-        return
+        return actor_loss, critic_loss
     
     

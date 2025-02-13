@@ -1,7 +1,6 @@
 from gym_duckietown.simulator import Simulator
 import gymnasium as gym
 from gymnasium import wrappers
-import numpy as np
 import torch
 import config
 from logs.logger import Logger
@@ -41,13 +40,6 @@ if __name__ == "__main__":
     RewardEpisode=0
     logger=Logger()
     for step in range(config.MAX_STEPS):
-        if done and step>0:
-            duckie.train()
-            done=False
-            obs=env.reset()[0]
-            #print(f"Reward episode: {RewardEpisode}")
-            RewardEpisode=0
-
         
         if (step<config.RANDOM_STEPS):
             action=env.action_space.sample()
@@ -60,9 +52,14 @@ if __name__ == "__main__":
         duckie.storeStep(obs, new_obs, action, reward, done)
 
         dist_center=info["Simulator"]["lane_position"]["dist"]
-        logger.add(step, reward, dist_center)
-
-        obs=new_obs
-        RewardEpisode+=-reward
+        wheel_velocities=info["Simulator"]["wheel_velocities"]
+        
+        if done and step>0:
+            loss=duckie.train()
+            done=False
+            obs=env.reset()[0]
+        else:
+            logger.add(step, reward, dist_center, wheel_velocities)
+            obs=new_obs
 
         
