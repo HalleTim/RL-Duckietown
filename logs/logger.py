@@ -7,39 +7,26 @@ class Logger():
     def __init__(self):
         self.logEntrys={}
         self.rewards=np.array([])
-        self.distances=np.array([])
-        self.losses=np.array([])
-        self.wheel_velocities=np.array([])
     
-    def add(self, step, reward, dist, wheel_velocities, loss=None):   
+    def add(self, step, reward):   
         self.rewards=np.append(self.rewards,reward)
-        self.distances=np.append(self.distances,dist)
-        self.wheel_velocities=np.append(self.wheel_velocities,wheel_velocities)
-
-        if loss is not None:
-            self.losses=np.append(self.losses,loss)
 
         if step%100==0:
             mean_reward=np.mean(self.rewards)
-            mean_dist=np.mean(self.distances)
-            if np.isnan(self.losses).all():
-                mean_loss=None
-            else:
-                mean_loss=np.mean(self.losses)
-            mean_wheel_velocities=np.mean(self.wheel_velocities)
 
-            print(f"Step: {step} Reward: {mean_reward} Dist: {mean_dist} Loss: {mean_dist}")
-            self.logEntrys[step]={"reward":mean_dist, "dist":mean_dist, "loss":mean_loss, "wheel_velocities":mean_wheel_velocities}
+            print(f"Step: {step} Reward: {mean_reward}")
 
             self.rewards=np.array([])
-            self.distances=np.array([])
-            self.losses=np.array([])
-            self.wheel_velocities=np.array([])
 
-        if step%10000==0:
+    
+    def EpisodeLog(self, totalSteps, EpisodeSteps, reward, episode, loss):
+        print(f"Episode: {episode} Steps: {EpisodeSteps} Reward: {reward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
+        self.logEntrys[episode]={"steps":EpisodeSteps, "reward":reward, "actor_loss":loss[0], "critic_loss":loss[1]}
+
+        if totalSteps%100000==0 and totalSteps>0:
             date=datetime.datetime.now()
             self.save(f"logs/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}.json")
-    
+
     def save(self, path, timestamp):
         if not os.path.exists(path):
             os.makedirs(path)
