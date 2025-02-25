@@ -2,37 +2,50 @@ import json
 import numpy as np
 import datetime
 import os
+import time
 
 class Logger():
     def __init__(self):
         self.logEntrys={}
-        self.rewards=np.array([])
-    
+        self.rewardsLong={}
+        self.rewardsShort=np.array([])
+        self.StartTime=time.time()
+
     def add(self, step, reward):   
-        self.rewards=np.append(self.rewards,reward)
 
-        if step%100==0:
-            mean_reward=np.mean(self.rewards)
+        self.rewardsShort=np.append(self.rewardsShort,reward)
+        print(f"Step: {step} Reward: {reward}")
+        if step%1000==0:
+            mean_reward=np.mean(self.rewardsShort)
+            self.rewardsShort=np.array([])
+            timeSinceStart=time.time()-self.StartTime
 
-            print(f"Step: {step} Reward: {mean_reward}")
+            self.rewardsLong[step]={"time": timeSinceStart, "reward": mean_reward}
 
-            self.rewards=np.array([])
+        if step%100000==0 and step>0:
+            date=datetime.datetime.now()
+            self.save(f"logs/steps/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}steps.json", self.rewardsLong)
+            self.rewardsLong.clear()
 
     
     def EpisodeLog(self, totalSteps, EpisodeSteps, reward, episode, loss):
+        
+        timeSinceStart=time.time()-self.StartTime
         print(f"Episode: {episode} Steps: {EpisodeSteps} Reward: {reward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
-        self.logEntrys[episode]={"steps":EpisodeSteps, "reward":reward, "actor_loss":loss[0], "critic_loss":loss[1]}
+        
 
-        if totalSteps%100000==0 and totalSteps>0:
+        if episode>0 and episode%1000==0:
             date=datetime.datetime.now()
-            self.save(f"logs/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}.json")
+            self.logEntrys[episode]={"time": timeSinceStart, "steps":EpisodeSteps, "reward":reward, "actor_loss":loss[0], "critic_loss":loss[1]}
+            self.save(f"logs/rewards/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}.json", self.logEntrys)
+            self.logEntrys.clear()
 
-    def save(self, path, timestamp):
+    def save(self, path, timestamp, data):
         if not os.path.exists(path):
             os.makedirs(path)
 
         filepath=f"{path}/{timestamp}"
 
         with open(filepath, 'w') as f:
-            json.dump(self.logEntrys, f)
-        self.logEntrys.clear()
+            json.dump(data, f)
+        

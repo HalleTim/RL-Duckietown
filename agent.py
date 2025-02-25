@@ -5,18 +5,25 @@ from torchrl.data import ReplayBuffer, LazyTensorStorage
 from torchrl.objectives import SoftUpdate, DDPGLoss
 from tensordict import TensorDict
 import numpy as np
+import os 
 
 from ddpg_net import Actor, Critic
+from noise import Ornstein_Uhlenbeck
 
 class Agent():
     def __init__(self, action_dim, max_action, c, buffer_size, batch_size, lr_actor, lr_critic, gamma, tau, discount):
         self.tau=tau
-        self.gamma=gamma    
+        self.gamma=gamma   
+        self.epsilon=1.0
+        self.epsilon_decay=1e-6
         self.lr_actor=lr_actor
         self.lr_critic=lr_critic
         self.c=c
         self.batch_size=batch_size
         self.discount=discount
+        self.max_action=max_action
+
+        self.ou=Ornstein_Uhlenbeck()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.actor = Actor(c,  action_dim, max_action).to(self.device)
@@ -48,9 +55,11 @@ class Agent():
     def select_action(self, state):
         state=np.array([state])
         state = torch.FloatTensor(state).to(self.device)
+        noise=self.ou.sample()*self.epsilon
+        noise==[noise [0],noise[0]]
         predicted_action = self.actor(state).cpu().detach().numpy().flatten()
-
-        return predicted_action
+        predicted_action+=noise
+        return np.clip(predicted_action,0,self.max_action)
 
     def storeStep(self, state, new_state, action, reward, done):
         data=TensorDict(
@@ -84,9 +93,9 @@ class Agent():
             target_actions = self.target_actor(new_states)
             target_critics = self.target_critic(new_states, target_actions)
             critic_v=self.critic(states, actions)
-            target_q=rewards + ((1-dones)*self.discount*target_critics).detach()
+            target_q=rewards + (1-dones)*self.discount*target_critics
 
-            critic_loss=F.mse_loss(critic_v, target_q)
+            critic_loss=F.mse_loss(critic_v, target_q.detach())
             
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
@@ -100,8 +109,17 @@ class Agent():
             self.actor_optimizer.step()
 
             self.update()
+            if self.epsilon>0:
+                self.epsilon-=self.epsilon_decay
 
 
-        return actor_loss, critic_loss
+        return actor_loss.item(), critic_loss.item()
+    
+    def save(self, path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        torch.save(self.actor.state_dict(), f"{path}/actor.pth")
+        torch.save(self.critic.state_dict(), f"{path}/critic.pth")
     
     

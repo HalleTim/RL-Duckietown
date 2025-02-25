@@ -35,7 +35,7 @@ if __name__ == "__main__":
     env=wrappers.NormalizeObservation(env)
     env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
     env=wrappers.TransformReward(env, lambda r: -10 if r==-1000 else r+10 if r>0 else r+4)
-    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]], env.action_space)
+    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]*0.8], env.action_space)
     
     #env=wrappers.ClipAction(env)
 
@@ -66,33 +66,34 @@ if __name__ == "__main__":
             
             
 
-        if (step<config.RANDOM_STEPS):
+        if (step<config.WARMUP):
             action=env.action_space.sample()
         else:
             action = duckie.select_action(obs)
-            if config.EXPL_NOISE != 0:
+            #action=torch.clamp(action,min=0, max=env.action_space.high)
+            """if config.EXPL_NOISE != 0:
                 action = (action + np.random.normal(
                     0,
                     config.EXPL_NOISE,
                     size=env.action_space.shape[0])
-                          ).clip(env.action_space.low, env.action_space.high)
+                          ).clip(env.action_space.low, env.action_space.high)"""
 
 
         new_obs, reward, done, truncated, info = env.step(action)
         EpisodeSteps+=1
         EpisodeReward+=reward
-        env.render()
 
         if EpisodeSteps>=config.MAX_ENV_STEPS:
             done=True
-        
+        env.render()
         
         duckie.storeStep(obs, new_obs, action, reward, done)
         obs=new_obs
 
         logger.add(step, reward)
-        
-
-        
+    print("Finished Training")
+    print("Saving Model")
+    duckie.save("models/ddpg/")
+    print("Model Saved")
 
         
