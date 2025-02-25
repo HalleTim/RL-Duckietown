@@ -81,36 +81,36 @@ class Agent():
             return self.memory.sample(batch_size)
     
     def train(self, iterations):
-        for i in range(iterations):
-            sample = self.memory.sample()
-            states = sample['state'].to(self.device)
-            new_states = sample['new_state'].to(self.device)
-            actions = sample['action'].to(self.device)
-            rewards = sample['reward'].to(self.device)
-            dones = sample['done'].to(self.device)
+        #for i in range(iterations):
+        sample = self.memory.sample()
+        states = sample['state'].to(self.device)
+        new_states = sample['new_state'].to(self.device)
+        actions = sample['action'].to(self.device)
+        rewards = sample['reward'].to(self.device)
+        dones = sample['done'].to(self.device)
 
 
-            target_actions = self.target_actor(new_states)
-            target_critics = self.target_critic(new_states, target_actions)
-            critic_v=self.critic(states, actions)
-            target_q=rewards + (1-dones)*self.discount*target_critics
+        target_actions = self.target_actor(new_states)
+        target_critics = self.target_critic(new_states, target_actions)
+        critic_v=self.critic(states, actions)
+        target_q=rewards + (1-dones)*self.discount*target_critics
 
-            critic_loss=F.mse_loss(critic_v, target_q.detach())
+        critic_loss=F.mse_loss(critic_v, target_q.detach())
             
-            self.critic_optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic_optimizer.step()
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
 
-            new_actions=self.actor(states)
-            actor_loss=-self.critic(states, new_actions).mean()
+        new_actions=self.actor(states)
+        actor_loss=-self.critic(states, new_actions).mean()
 
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
-            self.actor_optimizer.step()
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
 
-            self.update()
-            if self.epsilon>0:
-                self.epsilon-=self.epsilon_decay
+        self.update()
+        if self.epsilon>0:
+            self.epsilon-=self.epsilon_decay
 
 
         return actor_loss.item(), critic_loss.item()

@@ -57,7 +57,6 @@ if __name__ == "__main__":
         if done and step>0:
             done=False
             obs=env.reset()[0]
-            loss=duckie.train(EpisodeSteps)
    
             logger.EpisodeLog(step, EpisodeSteps, EpisodeReward, EpisodeNum, loss)
             EpisodeSteps=0
@@ -88,6 +87,7 @@ if __name__ == "__main__":
         env.render()
         
         duckie.storeStep(obs, new_obs, action, reward, done)
+        loss=duckie.train(EpisodeSteps)
         obs=new_obs
 
         logger.add(step, reward)
