@@ -18,7 +18,7 @@ class  Plotter():
         return result
     
     def updatePlot(self):
-        episodes=self.load("logs/rewards/2025-2-23")
+        episodes=self.load("logs/rewards/2025-2-24")
         x=[]
         y=[]
         timePassed=0
@@ -35,7 +35,7 @@ class  Plotter():
         plt.plot(x,y)
 
         
-        plt.savefig("logs/rewards/2025-2-23/rewards.png")
+        plt.savefig("logs/rewards/2025-2-24/rewards.png")
         
 plot=Plotter()
 
