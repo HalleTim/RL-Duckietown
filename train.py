@@ -1,64 +1,37 @@
 from gym_duckietown.simulator import Simulator
-import gymnasium as gym
-from gymnasium import wrappers
 import torch
-import numpy as np
-
+from env import launchEnv
 import config
 from logs.logger import Logger
 from agent import Agent
+import datetime
 
-
-def create_env(max_steps):
-    env = Simulator(
-        seed=123, # random seed
-        map_name="loop_empty",
-        max_steps= 500001, # we don't want the gym to reset itself
-        domain_rand=0,
-        camera_width=640,
-        camera_height=480,
-        accept_start_angle_deg=4, # start close to straight
-        full_transparency=True,
-        distortion=True,
-    )  
-    return env
-
-if __name__ == "__main__":
-    if torch.cuda.is_available():
-        cuda=True
-    else:
-        cuda=False
-    print(f"Is unsing cuda: %s" %cuda)
+def trainModel(env, obs, channels, action_dim, max_action, low_action, timestamp):
     
-    env=create_env(config.MAX_STEPS)
-    env=wrappers.ResizeObservation(env,(120,160))
-    env=wrappers.NormalizeObservation(env)
-    env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
-    env=wrappers.TransformReward(env, lambda r: -10 if r==-1000 else r+10 if r>0 else r+4)
-    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]*0.8], env.action_space)
+    duckie=Agent(action_dim=action_dim, 
+                max_action=max_action,
+                low_action=low_action,
+                c=channels, 
+                buffer_size=config.REPLAY_BUFFER_SIZE, 
+                batch_size=config.BATCH_SIZE, 
+                lr_actor=config.ACTOR_LR, 
+                lr_critic=config.CRITIC_LR, 
+                tau=config.TAU, 
+                discount=config.DISCOUNT)
     
-    #env=wrappers.ClipAction(env)
-
-    obs = env.reset()[0]
-    c=obs.shape[0]
-    action_dim = env.action_space.shape[0]
-    max_action=env.action_space.high[0]
-
-    duckie=Agent(action_dim, max_action,c , config.REPLAY_BUFFER_SIZE, config.BATCH_SIZE, config.ACTOR_LR, config.CRITIC_LR, config.GAMMA, config.TAU, config.DISCOUNT)
-
     done=False
     EpisodeReward=0
     EpisodeSteps=0
     EpisodeNum=0
-    logger=Logger()
+    logger=Logger(config.EVAL_EPISODE,config.EVAL_STEPS)
 
     for step in range(int(config.MAX_STEPS)):
         
         if done and step>0:
             done=False
             obs=env.reset()[0]
-   
-            logger.EpisodeLog(step, EpisodeSteps, EpisodeReward, EpisodeNum, loss)
+            loss=duckie.train(EpisodeSteps)
+            logger.logEpisode(EpisodeSteps, EpisodeReward, EpisodeNum, loss)
             EpisodeSteps=0
             EpisodeNum+=1
             EpisodeReward=0
@@ -69,7 +42,8 @@ if __name__ == "__main__":
             action=env.action_space.sample()
         else:
             action = duckie.select_action(obs)
-            #action=torch.clamp(action,min=0, max=env.action_space.high)
+
+
             """if config.EXPL_NOISE != 0:
                 action = (action + np.random.normal(
                     0,
@@ -87,13 +61,86 @@ if __name__ == "__main__":
         env.render()
         
         duckie.storeStep(obs, new_obs, action, reward, done)
-        loss=duckie.train(EpisodeSteps)
         obs=new_obs
 
-        logger.add(step, reward)
+        logger.logSteps(step, reward)
+
+
     print("Finished Training")
     print("Saving Model")
-    duckie.save("models/ddpg/")
+     
+    duckie.save(f"models/ddpg/{timestamp.year}-{timestamp.month}-{timestamp.day}")
     print("Model Saved")
+
+def evalModel(env, obs, channels, action_dim, max_action, low_action, timestamp):
+    duckie=Agent(action_dim=action_dim, 
+                max_action=max_action,
+                low_action=low_action,
+                c=channels,
+                trainMode=False)
+    duckie.load(f"models/ddpg/{timestamp.year}-{timestamp.month}-{timestamp.day}")
+    obs=env.reset()[0]
+    done=False
+    EvalLogger=Logger(1,1)
+    EpisodeNum=0
+    EpisodeSteps=0
+    EpisodeReward=0 
+
+    for i in range(config.EVAL_STEPS):
+        if done:
+            obs=env.reset()[0]
+            EvalLogger.logEpisode(EpisodeSteps, EpisodeReward, EpisodeNum)
+            EpisodeSteps=0
+            EpisodeReward=0
+
+        action=duckie.select_action(obs)
+        obs, reward, done, truncated, info=env.step(action)
+        env.render()
+
+        EvalLogger.logSteps(i, reward)
+        EpisodeNum+=1
+        EpisodeSteps+=1
+        EpisodeReward+=reward
+
+
+
+if __name__ == "__main__":
+    
+    env=launchEnv()
+    
+    obs = env.reset()[0]
+    c=obs.shape[0]
+
+    action_dim = env.action_space.shape[0]
+    max_action=env.action_space.high[0]
+    low_action=env.action_space.low[0]
+    
+    timestamp=datetime.datetime.now()
+    trainModel(env=env,
+               obs=obs,
+               channels=c,
+               action_dim=action_dim,
+               max_action=max_action,
+               low_action=low_action,
+               timestamp=timestamp)
+    
+    evalModel(env=env,
+               obs=obs,
+               channels=c,
+               action_dim=action_dim,
+               max_action=max_action,
+               low_action=low_action,
+               timestamp=timestamp)
+
+
+
+
+    
+
+    
+    
+    
+
+   
 
         
