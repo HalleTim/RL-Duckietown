@@ -63,10 +63,10 @@ class Agent():
         state = torch.FloatTensor(state).to(self.device)
         predicted_action = self.actor(state).cpu().detach().numpy().flatten()
         
-        if self.trainMode:
-            noise=self.ou.sample()*self.epsilon
-            noise==[noise [0],noise[0]]
-            predicted_action+=noise
+        #if self.trainMode:
+            #noise=self.ou.sample()*self.epsilon
+            #noise==[noise [0],noise[0]]
+            #predicted_action+=noise
             
         return np.clip(predicted_action,self.low_action,self.max_action)
 
@@ -129,7 +129,7 @@ class Agent():
 
 
 
-        return mean_actorLoss/iterations, mean_criticLoss/iterations
+        return (mean_actorLoss/iterations).item(), (mean_criticLoss/iterations).item()
     
     def save(self, path):
         if not os.path.exists(path):

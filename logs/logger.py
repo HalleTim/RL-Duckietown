@@ -14,7 +14,7 @@ class Logger():
         self.episodeFrequency=episodeFrequency
         self.stepFrequenzy=stepFrequenzy
 
-    def logSteps(self, step, reward):   
+    def logSteps(self, step, reward, action=None, info=None):   
 
         self.stepShort=np.append(self.stepShort,reward)
         print(f"Step: {step} Reward: {reward}")
@@ -24,28 +24,31 @@ class Logger():
             self.stepShort=np.delete(self.stepShort,0)
             timeSinceStart=time.time()-self.startTime
 
-            self.stepLong[step]={"time": timeSinceStart, "reward": mean_reward}
+            if info is not None and 'lane_position' in info['Simulator']:
+                self.stepLong[step]={"time": timeSinceStart, "reward": mean_reward, "lane_pos":info['Simulator']["lane_position"], "wheel_vel":info['Simulator']["wheel_velocities"], "action":action}
+            else:
+                self.stepLong[step]={"time": timeSinceStart, "reward": mean_reward}
 
         if step%100000==0 and step>0:
             date=datetime.datetime.now()
-            self.save(f"logs/steps/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}steps.json", self.rewardsLong)
+            self.save(f"logs/steps/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}steps.json", self.stepLong)
             self.stepLong.clear()
 
     
     def logEpisode(self, EpisodeSteps, reward, episode, loss=None):
+        timeSinceStart=time.time()-self.startTime
+        
         if loss is None:
             print(f"Episode: {episode} Steps: {EpisodeSteps} Reward: {reward}")
             self.episodeLog[episode]={"time": timeSinceStart, "steps":EpisodeSteps, "reward":reward}
-            
-        timeSinceStart=time.time()-self.startTime
-        print(f"Episode: {episode} Steps: {EpisodeSteps} Reward: {reward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
+        else:
+            print(f"Episode: {episode} Steps: {EpisodeSteps} Reward: {reward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
         
-
-        if episode>0 and episode%self.episodeFrequency==0:
-            date=datetime.datetime.now()
-            self.episodeLog[episode]={"time": timeSinceStart, "steps":EpisodeSteps, "reward":reward, "actor_loss":loss[0].item(), "critic_loss":loss[1].item()}
-            self.save(f"logs/rewards/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}.json", self.episodeLog)
-            self.episodeLog.clear()
+            """if episode>0 and episode%self.episodeFrequency==0:
+                date=datetime.datetime.now()
+                self.episodeLog[episode]={"time": timeSinceStart, "steps":EpisodeSteps, "reward":reward, "actor_loss":loss[0], "critic_loss":loss[1]}
+                self.save(f"logs/rewards/{date.year}-{date.month}-{date.day}", f"{date.hour}-{date.minute}-{date.second}.json", self.episodeLog)
+                self.episodeLog.clear()"""
 
 
     def save(self, path, timestamp, data):
