@@ -3,7 +3,7 @@ import torch
 from env import launchEnv
 import config
 from logs.logger import Logger
-from agent import Agent
+from td3_agent import Agent_TD3 as td3
 import datetime
 import numpy as np
 from skrl.resources.noises.torch import OrnsteinUhlenbeckNoise
@@ -15,25 +15,23 @@ def trainModel(env, obs, channels, action_dim, max_action, low_action, timestamp
     EpisodeSteps=0
     EpisodeNum=0
     logger=Logger(config.EVAL_EPISODE,config.EVAL_STEPS)
-    ou = OrnsteinUhlenbeckNoise(theta=0.1, sigma=0.2, base_scale=0.5)
+    ou = OrnsteinUhlenbeckNoise(theta=0.15, sigma=0.2, base_scale=0.5)
 
     for step in range(int(config.MAX_STEPS)):
         
         if done and step>0:
             done=False
-            
             loss=duckie.train(EpisodeSteps)
-            print(f"Episode: {EpisodeNum} Steps: {EpisodeSteps} Reward: {reward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
+            
+            if EpisodeNum%config.EVAL_EPISODE==0 and EpisodeNum>0:
+                evalModel(step)
+                
+            print(f"Episode: {EpisodeNum} Steps: {EpisodeSteps} Reward: {EpisodeReward} Actor Loss: {loss[0]} Critic Loss: {loss[1]}")
 
-            if EpisodeNum%config.EVAL_EPISODE==0:
-                evalModel()
             obs=env.reset()[0]
             EpisodeSteps=0
             EpisodeNum+=1
             EpisodeReward=0
-
-            
-            
             
 
         if (step<config.WARMUP):
@@ -43,14 +41,14 @@ def trainModel(env, obs, channels, action_dim, max_action, low_action, timestamp
 
 
             if config.EXPL_NOISE != 0:
-                noise = ou.sample((1,2)).cpu().detach().numpy().flatten()
-                action = action + noise
-                action = np.clip(action, low_action, max_action)
-                """action = (action + np.random.normal(
+                #noise = ou.sample((1,2)).cpu().detach().numpy().flatten()
+               # action = action + noise
+                #action = np.clip(action, low_action, max_action)
+                action = (action + np.random.normal(
                     0,
                     config.EXPL_NOISE,
                     size=env.action_space.shape[0])
-                          ).clip(env.action_space.low, env.action_space.high)"""
+                          ).clip(env.action_space.low, env.action_space.high)
 
 
         new_obs, reward, done, truncated, info = env.step(action)
@@ -73,7 +71,7 @@ def trainModel(env, obs, channels, action_dim, max_action, low_action, timestamp
     duckie.save(f"models/ddpg/{timestamp.year}-{timestamp.month}-{timestamp.day}")
     print("Model Saved")
 
-def evalModel():
+def evalModel(step):
 
     obs=env.reset()[0]
     done=False
@@ -84,15 +82,7 @@ def evalModel():
     EvalMeanReward=0
 
     print(f"Evaluating Model for {config.EVAL_LENGTH} episodes")
-    for episode in range(0,config.EVAL_LENGTH+1):
-        if done:
-            obs=env.reset()[0]
-            EvalLogger.logEpisode(EvalEpisodeSteps, EpisodeReward, episode)
-            EvalMeanReward+=EpisodeReward
-            EvalEpisodeSteps=0
-            EpisodeReward=0
-            done=False
-        
+    for episode in range(1,config.EVAL_LENGTH+1):
         while not done and EvalEpisodeSteps<500:
             action=duckie.select_action(obs)
             obs, reward, done, truncated, EvalInfo=env.step(action)
@@ -102,10 +92,22 @@ def evalModel():
            
             EvalEpisodeSteps+=1
             EpisodeReward+=reward
+        evalTimestamp=datetime.datetime.now()     
+        EvalLogger.save(f"logs/eval/{evalTimestamp.year}-{evalTimestamp.month}-{evalTimestamp.day}/{step}/steps/Episode-{episode}", f"{evalTimestamp.hour}-{evalTimestamp.minute}-{evalTimestamp.second}.json", EvalLogger.stepLong) 
+        EvalLogger.stepLong.clear()
+        
+        if done or EvalEpisodeSteps>=499:
+            obs=env.reset()[0]
+            EvalLogger.logEpisode(EvalEpisodeSteps, EpisodeReward, episode)
+            EvalMeanReward+=EpisodeReward
+            EvalEpisodeSteps=0
+            EpisodeReward=0
+            done=False
+            
     evalTimestamp=datetime.datetime.now()     
-    EvalLogger.save(f"logs/eval/steps/{evalTimestamp.year}-{evalTimestamp.month}-{evalTimestamp.day}", f"{evalTimestamp.hour}-{evalTimestamp.minute}-{evalTimestamp.second}.json", EvalLogger.stepLong)
-    EvalLogger.stepLong.clear()
-    EvalLogger.save(f"logs/eval/episodes/{evalTimestamp.year}-{evalTimestamp.month}-{evalTimestamp.day}", f"{evalTimestamp.hour}-{evalTimestamp.minute}-{evalTimestamp.second}.json", EvalLogger.episodeLog)
+    
+    
+    EvalLogger.save(f"logs/eval/{evalTimestamp.year}-{evalTimestamp.month}-{evalTimestamp.day}/{step}/episodes", f"{evalTimestamp.hour}-{evalTimestamp.minute}-{evalTimestamp.second}.json", EvalLogger.episodeLog)
     EvalLogger.episodeLog.clear()
 
     print(f"**********evaluation complete**********")
@@ -127,7 +129,7 @@ if __name__ == "__main__":
     
     timestamp=datetime.datetime.now()
 
-    duckie=Agent(action_dim=action_dim, 
+    duckie=td3(action_dim=action_dim, 
             max_action=max_action,
             low_action=low_action,
             c=c, 

@@ -18,10 +18,12 @@ def launchEnv():
     return env
 
 def integrateWrappers(env):
-    env=wrappers.ResizeObservation(env,(120,160))
+    env=wrappers.ResizeObservation(env,(60,80))
+    env=wrappers.GrayscaleObservation(env, True)
+    #env=wrappers.RescaleObservation(env, 0,1)
     env=wrappers.NormalizeObservation(env)
     env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
     env=wrappers.TransformReward(env, lambda r: -10 if r==-1000 else r+10 if r>0 else r+4)
-    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]], env.action_space)
+    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]*0.8], env.action_space)
 
     return env
