@@ -30,7 +30,6 @@ class Actor(nn.Module):
 
         self.lin1 = nn.Linear(flat_size, 512)
         self.lin2 = nn.Linear(512, action_dim)
-
         
     def forward(self,state):
         x = self.bn1(self.lr(self.conv1(state)))
@@ -39,8 +38,6 @@ class Actor(nn.Module):
         x = self.bn4(self.lr(self.conv4(x)))
         x = x.reshape(x.size(0), -1)  # flatten
         x = self.dropout(x)
-
-
         x = self.lr(self.lin1(x))
 
         # this is the vanilla implementation
@@ -51,7 +48,6 @@ class Actor(nn.Module):
         x = self.lin2(x)
         x[:, 0] = self.sigm(x[:, 0])  # because we don't want the duckie to go backwards
         x[:, 1] = self.tanh(x[:, 1])
-
         return x
 
 class Critic(nn.Module):
@@ -75,8 +71,9 @@ class Critic(nn.Module):
 
         self.dropout = nn.Dropout(.5)
 
-        self.lin1 = nn.Linear(flat_size+ action_dim, 256)
-        self.lin2 = nn.Linear(256, 128)
+        #self.lin1 = nn.Linear(flat_size, 256)
+        self.lin1 = nn.Linear(flat_size, 256)
+        self.lin2 = nn.Linear(256+ action_dim, 128)
         self.lin3 = nn.Linear(128, 1)
 
     def forward(self,states,actions):
@@ -86,8 +83,8 @@ class Critic(nn.Module):
         x = self.bn4(self.lr(self.conv4(x)))
 
         x = x.reshape(x.size(0), -1)  # flatten
-
-        x = self.lr(self.lin1(torch.cat([x, actions], 1)))
-        x = self.lr(self.lin2(x))  # c
+        x = self.dropout(x)
+        x = self.lr(self.lin1(x))
+        x = self.lr(self.lin2(torch.cat([x, actions], 1)))  # c
         x = self.lin3(x)
         return x

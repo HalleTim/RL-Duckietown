@@ -32,6 +32,7 @@ class Agent_TD3():
 
         #noise function for exploration
         self.ou=Ornstein_Uhlenbeck()
+        self.trainMode=True
 
         #initialize target networks
         self.target_actor = Actor(c, action_dim, max_action).to(self.device)
@@ -64,6 +65,7 @@ class Agent_TD3():
         
 
     def select_action(self, state):
+        self.evalMode()
         state=np.array([state])
         state = torch.FloatTensor(state).to(self.device)
         predicted_action = self.actor(state).cpu().detach().numpy().flatten()
@@ -72,7 +74,7 @@ class Agent_TD3():
             #noise=self.ou.sample()*self.epsilon
             #noise==[noise [0],noise[0]]
             #predicted_action+=noise
-            
+        self.trainM()
         return np.clip(predicted_action,self.low_action,self.max_action)
 
     def storeStep(self, state, new_state, action, reward, done):
@@ -94,6 +96,18 @@ class Agent_TD3():
         else:
             return self.memory.sample(batch_size)
     
+    def evalMode(self):
+        self.actor.eval()
+        self.critic_1.eval()
+        self.critic_2.eval()
+        self.trainMode=False
+
+    def trainM(self):
+        self.actor.train()
+        self.critic_1.train()
+        self.critic_2.train()
+        self.trainMode=True
+
     def train(self, iterations):
         mean_actorLoss=0
         mean_criticLoss=0
@@ -109,9 +123,9 @@ class Agent_TD3():
 
             target_actions = self.target_actor.forward(new_states)
             #add target noise too smooth 
-            #noise=torch.clamp(torch.normal(0, 0.2, size=(1,2)),-0.5,0.5).to(self.device)
+            noise=torch.clamp(torch.normal(0, 0.2, size=(1,2)),-0.5,0.5).to(self.device)
 
-            target_actions = target_actions+ torch.clamp(torch.normal(0, 0.2, size=(1,2)),-0.5,0.5).to(self.device)
+            target_actions = target_actions+ noise
 
 
             target_q1 = self.target_critic_1.forward(new_states, target_actions)
@@ -156,10 +170,12 @@ class Agent_TD3():
             os.makedirs(path)
 
         torch.save(self.actor.state_dict(), f"{path}/actor.pth")
-        torch.save(self.critic.state_dict(), f"{path}/critic.pth")
+        torch.save(self.critic_1.state_dict(), f"{path}/critic_1.pth")
+        torch.save(self.critic_2.state_dict(), f"{path}/critic_2.pth")
     
     def load(self,path):
         self.actor.load_state_dict(torch.load(f"{path}/actor.pth", map_location=self.device))
-        self.critic.load_state_dict(torch.load(f"{path}/critic.pth", map_location=self.device))
+        self.critic_1.load_state_dict(torch.load(f"{path}/critic_1.pth", map_location=self.device))
+        self.critic_1.load_state_dict(torch.load(f"{path}/critic_2.pth", map_location=self.device))
     
     

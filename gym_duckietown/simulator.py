@@ -159,6 +159,7 @@ class Simulator(gym.Env):
             seed=None,
             distortion=False,
             randomize_maps_on_reset=False,
+            render_mode='human'
     ):
         """
 
@@ -200,7 +201,7 @@ class Simulator(gym.Env):
 
         # Flag to draw the road curve
         self.draw_curve = draw_curve
-
+        self.render_mode = render_mode
         # Flag to draw bounding boxes
         self.draw_bbox = draw_bbox
 
