@@ -302,6 +302,8 @@ class Simulator(gym.Env):
 
         self.randomize_maps_on_reset = randomize_maps_on_reset
 
+        self.num_agents=1
+        
         if self.randomize_maps_on_reset:
             import os
             self.map_names = os.listdir('maps')
