@@ -7,7 +7,6 @@ import numpy as np
 import os 
 
 from td3_net import Actor, Critic
-from noise import Ornstein_Uhlenbeck
 
 class Agent_TD3():
     def __init__(self, action_dim, max_action, low_action, c, buffer_size=None, batch_size=None, lr_actor=None, lr_critic=None, tau=None, discount=None, update_interval=2):
@@ -31,7 +30,6 @@ class Agent_TD3():
         self.update_interval=update_interval
 
         #noise function for exploration
-        self.ou=Ornstein_Uhlenbeck()
         self.trainMode=True
 
         #initialize target networks
@@ -111,58 +109,59 @@ class Agent_TD3():
     def train(self, iteration):
         mean_actorLoss=0
         mean_criticLoss=0
-
-        sample = self.memory.sample().to(self.device)
-        states = sample['state']
-        new_states = sample['new_state']
-        actions = sample['action']
-        rewards = sample['reward']
-        dones = sample['done']
-
-
-        target_actions = self.target_actor.forward(new_states)
-        #add target noise too smooth 
-        noise=torch.clamp(torch.normal(0, 0.2, size=(1,2)),-0.5,0.5).to(self.device)
-
-        target_actions = target_actions+ noise
+        
+        for i in range(iteration):  
+            sample = self.memory.sample().to(self.device)
+            states = sample['state']
+            new_states = sample['new_state']
+            actions = sample['action']
+            rewards = sample['reward']
+            dones = sample['done']
 
 
-        target_q1 = self.target_critic_1.forward(new_states, target_actions)
-        target_q2 = self.target_critic_2.forward(new_states, target_actions)
+            target_actions = self.target_actor.forward(new_states)
+            #add target noise too smooth 
+            noise=torch.clamp(torch.normal(0, 0.2, size=(1,2)),-0.5,0.5).to(self.device)
 
-        q1=self.critic_1.forward(states, actions)
-        q2=self.critic_2.forward(states, actions)
+            target_actions = target_actions+ noise
 
-        target_critics = torch.min(target_q1, target_q2)
-        target_q=rewards +(1-dones)*self.discount*target_critics
-            
-        self.critic_optimizer_1.zero_grad()
-        self.critic_optimizer_2.zero_grad()
 
-        critic_loss_1=F.mse_loss(target_q.detach(), q1)
-        critic_loss_2=F.mse_loss(target_q.detach(), q2 )
-        critic_loss=critic_loss_1+critic_loss_2
+            target_q1 = self.target_critic_1.forward(new_states, target_actions)
+            target_q2 = self.target_critic_2.forward(new_states, target_actions)
 
-        critic_loss.backward()
-        self.critic_optimizer_1.step()
-        self.critic_optimizer_2.step()
+            q1=self.critic_1.forward(states, actions)
+            q2=self.critic_2.forward(states, actions)
 
-        if(iteration%self.update_interval==0):
-            self.actor_optimizer.zero_grad()
+            target_critics = torch.min(target_q1, target_q2)
+            target_q=rewards +(1-dones)*self.discount*target_critics
+                
+            self.critic_optimizer_1.zero_grad()
+            self.critic_optimizer_2.zero_grad()
 
-            new_actions=self.actor(states)
-            actor_loss=-self.critic_1.forward(states, new_actions).mean()
+            critic_loss_1=F.mse_loss(target_q.detach(), q1)
+            critic_loss_2=F.mse_loss(target_q.detach(), q2 )
+            critic_loss=critic_loss_1+critic_loss_2
 
-            actor_loss.backward()
-            self.actor_optimizer.step()
+            critic_loss.backward()
+            self.critic_optimizer_1.step()
+            self.critic_optimizer_2.step()
 
-            self.update()
+            if(i%self.update_interval==0):
+                self.actor_optimizer.zero_grad()
 
-            mean_actorLoss+=actor_loss
+                new_actions=self.actor(states)
+                actor_loss=-self.critic_1.forward(states, new_actions).mean()
 
-            mean_criticLoss+=critic_loss
+                actor_loss.backward()
+                self.actor_optimizer.step()
 
-            return (mean_actorLoss), (mean_criticLoss)
+                self.update()
+
+                mean_actorLoss+=actor_loss
+
+                mean_criticLoss+=critic_loss
+
+            return (mean_actorLoss/iteration), (mean_criticLoss/iteration)
         
         return [mean_criticLoss]
     

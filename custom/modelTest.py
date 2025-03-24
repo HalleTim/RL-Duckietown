@@ -3,6 +3,7 @@ from td3_agent import Agent_TD3 as td3
 from ddpg_agent import Agent as ddpg
 import datetime
 import config
+import numpy as np
 
 
 
@@ -13,6 +14,7 @@ def launchTest():
 
     while True:
         action=duckie.select_action(obs)
+        #action=np.clip(action, 0, 0.5)
         obs, reward, done, info = env.step(action)
         env.render()
         total_reward+=reward
@@ -48,5 +50,5 @@ duckie=ddpg(action_dim=action_dim,
         tau=config.TAU, 
         discount=config.DISCOUNT)
 
-duckie.load("../runs/DDPG_custom")
+duckie.load("../runs/simple/DDPG_custom")
 launchTest()

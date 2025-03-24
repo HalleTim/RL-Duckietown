@@ -28,12 +28,19 @@ def trainModel(env, obs, timestamp):
         
         if done and step>0:
             done=False
-            
-            
-            if EpisodeNum%config.EVAL_EPISODE==0:
-                evalModel(step)
+
+
+            loss=duckie.train(EpisodeSteps)
+            if len(loss) ==2:
+                writer.add_scalar("train/actor_loss", loss[0], step)
+                writer.add_scalar("train/critic_loss", loss[1], step)
+            else:
+                writer.add_scalar("train/critic_loss", loss[0], step)
 
             print(f"Total Steps: {step} Episode: {EpisodeNum} Reward: {EpisodeReward}")
+
+            if EpisodeNum%config.EVAL_EPISODE==0:
+                evalModel(step)
 
             obs=env.reset()[0]
             EpisodeSteps=0
@@ -50,8 +57,8 @@ def trainModel(env, obs, timestamp):
                 #noise = ou.sample((1,2)).cpu().detach().numpy().flatten()
                 noise = action_noise()
                 action = (action + noise)
-                action[0]=np.clip(action[0], -1, 1)
-                action[1]=np.clip(action[1], -1, 1)
+                action[0]=np.clip(action[0], 0, 0.5)
+                action[1]=np.clip(action[1], 0, 0.5)
                 #action = np.clip(action, low_action, max_action)
                 #noise=np.random.normal(0, config.EXPL_NOISE, size=env.action_space.shape[0])
                 
@@ -66,19 +73,14 @@ def trainModel(env, obs, timestamp):
         
         duckie.storeStep(obs, new_obs, action, reward, done)
         obs=new_obs
-        loss=duckie.train(step)
-
-        if len(loss) ==2:
-            writer.add_scalar("train/actor_loss", loss[0], step)
-            writer.add_scalar("train/critic_loss", loss[1], step)
-        else:
-            writer.add_scalar("train/critic_loss", loss[0], step)
+        
+        
 
 
     print("Finished Training")
     print("Saving Model")
      
-    duckie.save(f"../runs/TD3_custom")
+    duckie.save(f"../runs/DDPG_custom")
     print("Model Saved")
 
 def evalModel(step):
@@ -97,7 +99,7 @@ def evalModel(step):
     for episode in range(1,config.EVAL_LENGTH+1):
         while not done and EvalEpisodeSteps<1500:
             action=duckie.select_action(obs)
-            action=np.clip(action, -1, max_action)
+            action=np.clip(action, 0, 0.5)
             obs, reward, done, EvalInfo=env.step(action)
             env.render()
 
@@ -136,9 +138,9 @@ if __name__ == "__main__":
     
     
     timestamp=datetime.datetime.now()
-    writer=SummaryWriter(f"../runs/TD3_custom/")
+    writer=SummaryWriter(f"../runs/DDPG_custom/")
 
-    duckie=td3(action_dim=action_dim, 
+    duckie=ddpg(action_dim=action_dim, 
             max_action=max_action,
             low_action=low_action,
             c=c, 

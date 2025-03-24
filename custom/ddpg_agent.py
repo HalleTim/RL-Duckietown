@@ -7,7 +7,6 @@ import numpy as np
 import os 
 
 from ddpg_net import Actor, Critic
-from noise import Ornstein_Uhlenbeck
 
 class Agent():
     def __init__(self, action_dim, max_action, low_action, c, buffer_size=None, batch_size=None, lr_actor=None, lr_critic=None, tau=None, discount=None, trainMode=True):
@@ -26,10 +25,7 @@ class Agent():
         self.lr_critic=lr_critic
         self.batch_size=batch_size
         self.discount=discount
-        
-
-        #noise function for exploration
-        self.ou=Ornstein_Uhlenbeck()
+    
 
         #initialize target networks
         self.target_actor = Actor(c, action_dim, max_action).to(self.device)
@@ -91,41 +87,41 @@ class Agent():
         mean_criticLoss=0
         self.setTrainMode()
 
-        #for i in range(iterations):
-        sample = self.memory.sample()
-        states = sample['state'].to(self.device)
-        new_states = sample['new_state'].to(self.device)
-        actions = sample['action'].to(self.device)
-        rewards = sample['reward'].to(self.device)
-        dones = sample['done'].to(self.device)
+        for i in range(step):
+            sample = self.memory.sample()
+            states = sample['state'].to(self.device)
+            new_states = sample['new_state'].to(self.device)
+            actions = sample['action'].to(self.device)
+            rewards = sample['reward'].to(self.device)
+            dones = sample['done'].to(self.device)
 
 
-        target_actions = self.target_actor(new_states)
-        target_critics = self.target_critic(new_states, target_actions)
-        critic_v=self.critic(states, actions)
-        target_q=rewards + (1-dones)*self.discount*target_critics
+            target_actions = self.target_actor(new_states)
+            target_critics = self.target_critic(new_states, target_actions)
+            critic_v=self.critic(states, actions)
+            target_q=rewards + (1-dones)*self.discount*target_critics
 
-        critic_loss=F.mse_loss(critic_v, target_q.detach())
-            
-        self.critic_optimizer.zero_grad()
-        critic_loss.backward()
-        self.critic_optimizer.step()
+            critic_loss=F.mse_loss(critic_v, target_q.detach())
+                
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic_optimizer.step()
 
-        new_actions=self.actor(states)
-        actor_loss=-self.critic(states, new_actions).mean()
+            new_actions=self.actor(states)
+            actor_loss=-self.critic(states, new_actions).mean()
 
-        self.actor_optimizer.zero_grad()
-        actor_loss.backward()
-        self.actor_optimizer.step()
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor_optimizer.step()
 
-        self.update()
+            self.update()
 
-        mean_actorLoss+=actor_loss
-        mean_criticLoss+=critic_loss
+            mean_actorLoss+=actor_loss
+            mean_criticLoss+=critic_loss
 
 
 
-        return (mean_actorLoss).item(), (mean_criticLoss).item()
+        return (mean_actorLoss/step), (mean_criticLoss/step)
     
     def setTrainMode(self):
         self.actor.train()

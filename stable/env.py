@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 def launchEnv():
     env = Simulator(
         seed=123, # random seed
-        map_name="loop_empty",
+        map_name="loop_empty_advanced",
         max_steps= 1500, # we don't want the gym to reset itself
         domain_rand=0,
         camera_width=640,
@@ -33,8 +33,8 @@ def integrateWrappers(env):
     #env=wrappers.NormalizeObservation(env)
     #env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
     #env=wrappers.TransformReward(env, lambda r: -10 if r==-1000 else r+10 if r>0 else r+4)
-    env=wrappers.TransformAction(env,lambda a:[a[0]*0.8,a[1]*0.8], env.action_space)
-    
+    env=wrappers.TransformAction(env,lambda a: np.clip(a, 0,0.6), env.action_space)
+    #env=wrappers.TransformAction(env,lambda a: [a[0]*0.8, a[1]*0.8], env.action_space)
     #env=MyReward(env)
 
     
