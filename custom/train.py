@@ -1,7 +1,6 @@
 import torch
 from env import launchEnv
 import config
-from logs.logger import Logger
 from td3_agent import Agent_TD3 as td3
 from ddpg_agent import Agent as ddpg
 import datetime
@@ -16,14 +15,12 @@ def trainModel(env, obs, timestamp):
     EpisodeReward=0
     EpisodeSteps=0
     EpisodeNum=0
-    logger=Logger(config.EVAL_STEPS)
 
-    #ou = OrnsteinUhlenbeckNoise(theta=0.15, sigma=0.1, base_scale=0.3)
 
     n_actions = env.action_space.shape[-1]
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.2* np.ones(n_actions))
 
-
+    #train run
     for step in range(int(config.MAX_STEPS)):
         
         if done and step>0:
@@ -54,13 +51,13 @@ def trainModel(env, obs, timestamp):
 
 
             if config.EXPL_NOISE != 0:
-                #noise = ou.sample((1,2)).cpu().detach().numpy().flatten()
                 noise = action_noise()
                 action = (action + noise)
-                action[0]=np.clip(action[0], 0, 0.5)
-                action[1]=np.clip(action[1], 0, 0.5)
-                #action = np.clip(action, low_action, max_action)
-                #noise=np.random.normal(0, config.EXPL_NOISE, size=env.action_space.shape[0])
+
+                #clip action for slow mode
+                #action[0]=np.clip(action[0], 0, 0.5)
+                #action[1]=np.clip(action[1], 0, 0.5)
+                action = np.clip(action, low_action, max_action)
                 
 
 
@@ -99,7 +96,10 @@ def evalModel(step):
     for episode in range(1,config.EVAL_LENGTH+1):
         while not done and EvalEpisodeSteps<1500:
             action=duckie.select_action(obs)
-            action=np.clip(action, 0, 0.5)
+
+            #clip action for slow mode
+            #action=np.clip(action, 0, 0.5)
+
             obs, reward, done, EvalInfo=env.step(action)
             env.render()
 
@@ -116,6 +116,7 @@ def evalModel(step):
         EpisodeReward=0
         done=False  
 
+    #value logging
     writer.add_scalar("rollout/ep_rew_mean", EvalMeanReward/config.EVAL_LENGTH, step)
     writer.add_scalar("rollout/ep_len_mean", EvalMeanLength/config.EVAL_LENGTH, step)
 
@@ -125,6 +126,7 @@ def evalModel(step):
     print("**************************************")
 
 
+##initiate env and agent
 if __name__ == "__main__":
     
     env=launchEnv()

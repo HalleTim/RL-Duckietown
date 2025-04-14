@@ -49,20 +49,17 @@ class Agent():
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_(tau*param.data + (1.0-tau)*target_param.data)
         
-
+    
+    #select action from actor network
     def select_action(self, state):
         self.setEvalMode()
         state=np.array([state])
         state = torch.FloatTensor(state).to(self.device)
         predicted_action = self.actor(state).cpu().detach().numpy().flatten()
-        
-        #if self.trainMode:
-            #noise=self.ou.sample()*self.epsilon
-            #noise==[noise [0],noise[0]]
-            #predicted_action+=noise
             
         return np.clip(predicted_action,self.low_action,self.max_action)
 
+    #store experience in replay buffer
     def storeStep(self, state, new_state, action, reward, done):
         data=TensorDict(
             {
@@ -76,6 +73,7 @@ class Agent():
         )
         self.memory.add(data)
 
+    #sample a batch of data
     def sample(self, batch_size=None):
         if batch_size is None:
             return self.memory.sample()

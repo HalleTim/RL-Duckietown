@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 def launchEnv():
     env = Simulator(
         seed=123, # random seed
-        map_name="loop_empty_advanced",
+        map_name="loop_empty",
         max_steps= 1500, # we don't want the gym to reset itself
         domain_rand=0,
         camera_width=640,
@@ -28,14 +28,7 @@ def launchEnv():
 
 def integrateWrappers(env):
     env=wrappers.ResizeObservation(env,(60,80))
-    #env=wrappers.GrayscaleObservation(env, True)
-    #env=wrappers.RescaleObservation(env, 0,1)
-    #env=wrappers.NormalizeObservation(env)
-    #env=wrappers.TransformObservation(env, lambda obs: obs.transpose(2,0,1) , env.observation_space)
-    #env=wrappers.TransformReward(env, lambda r: -10 if r==-1000 else r+10 if r>0 else r+4)
-    env=wrappers.TransformAction(env,lambda a: np.clip(a, 0,0.6), env.action_space)
-    #env=wrappers.TransformAction(env,lambda a: [a[0]*0.8, a[1]*0.8], env.action_space)
-    #env=MyReward(env)
+    env=wrappers.TransformAction(env,lambda a: [a[0]*.8, a[1]*0.8], env.action_space)
 
     
     env=DtRewardPosAngle(env)
@@ -43,44 +36,6 @@ def integrateWrappers(env):
 
 
     return env
-
-class MyReward(gym.RewardWrapper):
-    def __init__(self, env):
-        if env is not None:
-            super(MyReward, self).__init__(env)
-        self.orientation_reward = 0.
-    
-    def reward(self, reward):
-        pos = self.unwrapped.cur_pos
-        angle = self.unwrapped.cur_angle
-
-        try:
-            lp = self.unwrapped.get_lane_pos2(pos, angle)
-            # print("Dist: {:3.2f} | DotDir: {:3.2f} | Angle_deg: {:3.2f}". format(lp.dist, lp.dot_dir, lp.angle_deg))
-        except NotInLane:
-            return -1.
-        
-        if lp.dist<0.1:
-            self.orientation_reward= self.unwrapped.speed
-        else:
-            self.orientation_reward=-1.
-        
-        return self.orientation_reward
-        
-    def step(self, action):
-        observation, reward, done, truncated, info =self.env.step(action)
-        #observation, reward, done, info = self.env.step(action)
-        if 'custom_rewards' not in info.keys():
-            info['custom_rewards'] = {}
-        info['custom_rewards']['orientation'] = self.orientation_reward
-        return observation, self.reward(reward), done, truncated, info
-
-    def reset(self, **kwargs):
-        self.orientation_reward = 0.
-        return self.env.reset(**kwargs)
-    
-
-
 
 class DtRewardPosAngle(gym.RewardWrapper):
     def __init__(self, env):
@@ -170,4 +125,5 @@ class DtRewardVelocity(gym.RewardWrapper):
         if 'custom_rewards' not in info.keys():
             info['custom_rewards'] = {}
         info['custom_rewards']['velocity'] = self.velocity_reward
+        info['custom_rewards']['speed'] = self.unwrapped.speed
         return observation, self.reward(reward), done, truncated, info

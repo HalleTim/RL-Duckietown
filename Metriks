@@ -1,0 +1,93 @@
+Auf Karte loop empty advanced
+
+	DDPG_advanced
+	Mean total reward: 732.7491436749235,  mean speed: 0.3433959087494586, mean orientation: 0.3383636766379879, survival time: 15.202300238609315
+	
+	TD3_advanced
+	Mean total reward: 448.7363626601503,  mean speed: 0.524158552414405, mean orientation: 0.32918416260643013, survival time: 7.301388263702393
+
+	DDPG_simple
+	Mean total reward: 115.32110438208785,  mean speed: 0.12204488974928959, mean orientation: 0.043297794418339294, survival time: 15.42223584651947
+	
+	TD3_simple
+	Mean total reward: 276.01941222167216,  mean speed: 0.53250607949238, mean orientation: 0.02358426470164474, survival time: 14.096941089630127
+	
+	TD3_stb3
+	Total reward: [264.09656]
+	Mean speed: 0.3534684193784888
+	Mean orientation: 0.2547781730049788
+	Survival time: 6.548066663742065
+
+	DDPG_stb3s
+	Total reward: [254.40474]
+	Mean speed: 0.29600980380284736
+	Mean orientation: 0.18983364598096064
+	Survival time: 7.0293107509613035
+
+Auf Karte loop empty
+	DDPG_simple
+	Mean total reward: 1274.689757106716,  mean speed: 0.7648464746346587, mean orientation: 0.6338583893647578, survival time: 13.670530724525452
+	
+	TD3_simple
+	Mean total reward: 1348.9305015822856,  mean speed: 0.8082072013256724, mean orientation: 0.6840364379472776, survival time: 14.01463804244995
+	
+	TD3_stb3
+	Total reward: [1408.8629]
+	Mean speed: 0.7241195570950738
+	Mean orientation: 0.7239993055529534
+	Survival time: 13.48561089038849
+	
+	DDPG_stb3
+	Total reward: [1322.0457]
+	Mean speed: 0.7992883291627502
+	Mean orientation: 0.6421958369469362
+	Survival time: 14.63114640712738
+
+Auf Karte zigzag
+
+	DDPG_advanced
+	Mean total reward: 49.963924684865226,  mean speed: 0.3146701621951057, mean orientation: 0.10600500466550769, survival time: 1.7360830068588258
+	
+	TD3_advanced
+	Mean total reward: 19.954247194710607,  mean speed: 0.5291287769441687, mean orientation: 0.02878804752633085, survival time: 0.8858288049697876
+	
+	TD3_simple
+	Mean total reward: 30.8734586583149,  mean speed: 0.4139150816271657, mean orientation: 0.13402334051694909, survival time: 3.2899574279785155
+	
+	TD3_stb3
+	Total reward: [21.025085]
+	Mean speed: 0.4643718889102259
+	Mean orientation: 0.062338792714472915
+	Survival time: 0.9523951530456543
+
+	DDPG_stb3
+	Total reward: [26.138514]
+	Mean speed: 0.38124779762641337
+	Mean orientation: 0.07980235903621791
+	Survival time: 6.358916521072388
+
+4way
+
+	DDPG_advanced
+	Mean total reward: 164.48401548793694,  mean speed: 0.4629680928593878, mean orientation: 0.24001989154922154, survival time: 2.5298494577407835
+
+	DDPG_simple
+	Mean total reward: 920.5791304831853,  mean speed: 0.7663190751502913, mean orientation: 0.4300568612796928, survival time: 11.303866100311279
+
+	TD3_simple
+	Mean total reward: 470.24719411557555,  mean speed: 0.7151578760720535, mean orientation: 0.33359965532360797, survival time: 5.491008734703064
+
+	TD3_stb3
+	Total reward: [32.39865]
+	Mean speed: 0.6327686270408657
+	Mean orientation: 0.13078808809754064
+	Survival time: 0.5689573049545288
+
+	DDPG_stb3
+	Total reward: [29.582367]
+	Mean speed: 0.5719567307723221
+	Mean orientation: 0.14129962513628955
+	Survival time: 0.7007085084915161
+
+
+

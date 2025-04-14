@@ -48,6 +48,7 @@ class Agent_TD3():
 
         self.memory = ReplayBuffer(storage=LazyTensorStorage(buffer_size), batch_size=batch_size)
 
+    #soft update of target networks
     def update(self, tau=None):
         if tau ==None:
             tau=self.tau
@@ -61,20 +62,17 @@ class Agent_TD3():
         for target_param, param in zip(self.target_critic_2.parameters(), self.critic_2.parameters()):
             target_param.data.copy_(tau*param.data + (1.0-tau)*target_param.data)
         
-
+    #select action
     def select_action(self, state):
         self.evalMode()
         state=np.array([state])
         state = torch.FloatTensor(state).to(self.device)
         predicted_action = self.actor(state).cpu().detach().numpy().flatten()
         
-        #if self.trainMode:
-            #noise=self.ou.sample()*self.epsilon
-            #noise==[noise [0],noise[0]]
-            #predicted_action+=noise
         self.trainM()
         return np.clip(predicted_action,self.low_action,self.max_action)
 
+    #store experience in replay buffer
     def storeStep(self, state, new_state, action, reward, done):
         data=TensorDict(
             {
@@ -88,6 +86,7 @@ class Agent_TD3():
         )
         self.memory.add(data)
 
+    #create a batch of data
     def sample(self, batch_size=None):
         if batch_size is None:
             return self.memory.sample()
@@ -125,7 +124,7 @@ class Agent_TD3():
 
             target_actions = target_actions+ noise
 
-
+            #calculate target-q values
             target_q1 = self.target_critic_1.forward(new_states, target_actions)
             target_q2 = self.target_critic_2.forward(new_states, target_actions)
 
@@ -138,14 +137,17 @@ class Agent_TD3():
             self.critic_optimizer_1.zero_grad()
             self.critic_optimizer_2.zero_grad()
 
+            #calculate loss function
             critic_loss_1=F.mse_loss(target_q.detach(), q1)
             critic_loss_2=F.mse_loss(target_q.detach(), q2 )
             critic_loss=critic_loss_1+critic_loss_2
 
+            #update critic
             critic_loss.backward()
             self.critic_optimizer_1.step()
             self.critic_optimizer_2.step()
 
+            #update actor every d iterations
             if(i%self.update_interval==0):
                 self.actor_optimizer.zero_grad()
 
@@ -165,6 +167,7 @@ class Agent_TD3():
         
         return [mean_criticLoss]
     
+    #export model
     def save(self, path):
         if not os.path.exists(path):
             os.makedirs(path)
@@ -173,6 +176,7 @@ class Agent_TD3():
         torch.save(self.critic_1.state_dict(), f"{path}/critic_1.pth")
         torch.save(self.critic_2.state_dict(), f"{path}/critic_2.pth")
     
+    #load model
     def load(self,path):
         self.actor.load_state_dict(torch.load(f"{path}/actor.pth", map_location=self.device))
         self.critic_1.load_state_dict(torch.load(f"{path}/critic_1.pth", map_location=self.device))
