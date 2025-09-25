@@ -1,5 +1,6 @@
 # Project Summary #
-This bachelor thesis investigates how well different perception and control approaches work on a small-scale autonomous vehicle, the Duckiebot, inside the Duckietown ecosystem. It pursues two main objectives:
+This bachelor thesis investigates how well different perception and control approaches work on a small-scale autonomous vehicle, the Duckiebot, inside the Duckietown ecosystem. 
+It pursues two main objectives:
 
 1. Object avoidance
 • Build and test a lightweight colour-based obstacle detector that spots the yellow rubber ducks used as obstacles in Duckietown.
