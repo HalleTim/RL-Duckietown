@@ -7,10 +7,10 @@ This bachelor thesis investigates how well different perception and control appr
 
 2. Lane keeping
 Implement Deep Deterministic Policy Gradient (DDPG) and Twin Delayed DDPG (TD3) as deep-reinforcement-learning algorithms that can learn continuous steering and throttle commands from camera images alone:
-* Provide two independent implementations of each algorithm:
-a custom code base tailored to Duckietown (written in PyTorch and Gymnasium)
-the generic off-the-shelf implementation from the open-source framework Stable-Baselines3 (SB3).
-* Compare learning speed, final driving quality and robustness to unseen maps.
+    * Provide two independent implementations of each algorithm:
+    a custom code base tailored to Duckietown (written in PyTorch and Gymnasium)
+    the generic off-the-shelf implementation from the open-source framework Stable-Baselines3 (SB3).
+    * Compare learning speed, final driving quality and robustness to unseen maps.
 
 ## Main results ##
 
