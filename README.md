@@ -4,8 +4,8 @@ This bachelor thesis investigates how well different perception and control appr
 It pursues two main objectives:
 
 1. Object avoidance
-• Build and test a lightweight colour-based obstacle detector that spots the yellow rubber ducks used as obstacles in Duckietown.
-• Couple the detector with a Braitenberg-style reactive controller so that the robot can steer around the ducks without any global planning.
+* Build and test a lightweight colour-based obstacle detector that spots the yellow rubber ducks used as obstacles in Duckietown.
+* Couple the detector with a Braitenberg-style reactive controller so that the robot can steer around the ducks without any global planning.
 
 2. Lane keeping
 Implement Deep Deterministic Policy Gradient (DDPG) and Twin Delayed DDPG (TD3) as deep-reinforcement-learning algorithms that can learn continuous steering and throttle commands from camera images alone:
